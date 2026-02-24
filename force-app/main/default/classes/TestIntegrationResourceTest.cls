@@ -291,4 +291,248 @@ private class TestIntegrationResourceTest {
         Assert.isTrue(RestContext.response.headers.containsKey('Location'), 
                      'Location header should be set');
     }
+    
+    /**
+     * Test PUT method - successful Account update
+     */
+    @isTest
+    static void testDoPutSuccess() {
+        // Get an account ID from test data
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+        
+        String requestBody = '{"Id": "' + testAccount.Id + '", "Name": "Updated Account Name", "BillingCity": "Updated City"}';
+        RestRequest req = new RestRequest();
+        req.requestBody = Blob.valueOf(requestBody);
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doPut();
+        
+        Test.stopTest();
+        
+        Assert.isNotNull(response, 'Response should not be null');
+        Assert.isTrue(response.success, 'Response should indicate success');
+        Assert.isTrue(response.message.contains('updated successfully'), 
+                     'Message should indicate successful update');
+        Assert.areEqual(200, RestContext.response.statusCode, 'Status code should be 200');
+        
+        // Verify Account was updated in database
+        Account verifyAccount = [SELECT Id, Name, BillingCity FROM Account WHERE Id = :testAccount.Id];
+        Assert.areEqual('Updated Account Name', verifyAccount.Name, 'Account name should be updated');
+        Assert.areEqual('Updated City', verifyAccount.BillingCity, 'BillingCity should be updated');
+    }
+    
+    /**
+     * Test PUT method - missing required Id field
+     */
+    @isTest
+    static void testDoPutMissingIdField() {
+        String requestBody = '{"Name": "Account Without Id"}';
+        RestRequest req = new RestRequest();
+        req.requestBody = Blob.valueOf(requestBody);
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doPut();
+        
+        Test.stopTest();
+        
+        Assert.isFalse(response.success, 'Response should indicate failure');
+        Assert.isTrue(response.message.contains('Required field missing'), 
+                     'Message should indicate missing Id field');
+        Assert.isTrue(response.message.contains('Id'), 'Message should mention Id field');
+    }
+    
+    /**
+     * Test PUT method - Account not found
+     */
+    @isTest
+    static void testDoPutAccountNotFound() {
+        String requestBody = '{"Id": "001xx000000000AAA", "Name": "Updated Name"}';
+        RestRequest req = new RestRequest();
+        req.requestBody = Blob.valueOf(requestBody);
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doPut();
+        
+        Test.stopTest();
+        
+        Assert.isFalse(response.success, 'Response should indicate failure');
+        Assert.isTrue(response.message.contains('Account not found'), 
+                     'Message should indicate account not found');
+        Assert.areEqual(404, RestContext.response.statusCode, 'Status code should be 404');
+    }
+    
+    /**
+     * Test PUT method - empty request body
+     */
+    @isTest
+    static void testDoPutEmptyRequestBody() {
+        RestRequest req = new RestRequest();
+        req.requestBody = Blob.valueOf('');
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doPut();
+        
+        Test.stopTest();
+        
+        Assert.isFalse(response.success, 'Response should indicate failure');
+        Assert.isTrue(response.message.contains('Request body cannot be empty'), 
+                     'Message should indicate empty body');
+    }
+    
+    /**
+     * Test PUT method - invalid JSON format
+     */
+    @isTest
+    static void testDoPutInvalidJSON() {
+        RestRequest req = new RestRequest();
+        req.requestBody = Blob.valueOf('{invalid json}');
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doPut();
+        
+        Test.stopTest();
+        
+        Assert.isFalse(response.success, 'Response should indicate failure');
+        Assert.isTrue(response.message.contains('Invalid JSON format'), 
+                     'Message should indicate JSON parsing error');
+        Assert.areEqual(400, RestContext.response.statusCode, 'Status code should be 400');
+    }
+    
+    /**
+     * Test DELETE method - successful Account deletion by Id parameter
+     */
+    @isTest
+    static void testDoDeleteSuccessByParameter() {
+        Account testAccount = [SELECT Id, Name FROM Account LIMIT 1];
+        
+        RestRequest req = new RestRequest();
+        req.params.put('Id', testAccount.Id);
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doDelete();
+        
+        Test.stopTest();
+        
+        Assert.isNotNull(response, 'Response should not be null');
+        Assert.isTrue(response.success, 'Response should indicate success');
+        Assert.isTrue(response.message.contains('deleted successfully'), 
+                     'Message should indicate successful deletion');
+        Assert.areEqual(200, RestContext.response.statusCode, 'Status code should be 200');
+        
+        // Verify Account was deleted from database
+        List<Account> verifyAccounts = [SELECT Id FROM Account WHERE Id = :testAccount.Id];
+        Assert.areEqual(0, verifyAccounts.size(), 'Account should be deleted');
+    }
+    
+    /**
+     * Test DELETE method - successful Account deletion by request body
+     */
+    @isTest
+    static void testDoDeleteSuccessByRequestBody() {
+        Account testAccount = [SELECT Id, Name FROM Account LIMIT 1 OFFSET 1];
+        
+        String requestBody = '{"Id": "' + testAccount.Id + '"}';
+        RestRequest req = new RestRequest();
+        req.requestBody = Blob.valueOf(requestBody);
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doDelete();
+        
+        Test.stopTest();
+        
+        Assert.isTrue(response.success, 'Response should indicate success');
+        Assert.isTrue(response.message.contains('deleted successfully'), 
+                     'Message should indicate successful deletion');
+        Assert.areEqual(200, RestContext.response.statusCode, 'Status code should be 200');
+        
+        // Verify Account was deleted from database
+        List<Account> verifyAccounts = [SELECT Id FROM Account WHERE Id = :testAccount.Id];
+        Assert.areEqual(0, verifyAccounts.size(), 'Account should be deleted');
+    }
+    
+    /**
+     * Test DELETE method - missing Account Id
+     */
+    @isTest
+    static void testDoDeleteMissingId() {
+        RestRequest req = new RestRequest();
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doDelete();
+        
+        Test.stopTest();
+        
+        Assert.isFalse(response.success, 'Response should indicate failure');
+        Assert.isTrue(response.message.contains('Account Id parameter is required'), 
+                     'Message should indicate missing Id');
+        Assert.areEqual(400, RestContext.response.statusCode, 'Status code should be 400');
+    }
+    
+    /**
+     * Test DELETE method - Account not found
+     */
+    @isTest
+    static void testDoDeleteAccountNotFound() {
+        RestRequest req = new RestRequest();
+        req.params.put('Id', '001xx000000000AAA');
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doDelete();
+        
+        Test.stopTest();
+        
+        Assert.isFalse(response.success, 'Response should indicate failure');
+        Assert.isTrue(response.message.contains('Account not found'), 
+                     'Message should indicate account not found');
+        Assert.areEqual(404, RestContext.response.statusCode, 'Status code should be 404');
+    }
+    
+    /**
+     * Test DELETE method - invalid JSON format
+     */
+    @isTest
+    static void testDoDeleteInvalidJSON() {
+        RestRequest req = new RestRequest();
+        req.requestBody = Blob.valueOf('{invalid json}');
+        RestContext.request = req;
+        RestContext.response = new RestResponse();
+        
+        Test.startTest();
+        
+        TestIntegrationResource.ResponseWrapper response = TestIntegrationResource.doDelete();
+        
+        Test.stopTest();
+        
+        Assert.isFalse(response.success, 'Response should indicate failure');
+        Assert.isTrue(response.message.contains('Invalid JSON format'), 
+                     'Message should indicate JSON parsing error');
+        Assert.areEqual(400, RestContext.response.statusCode, 'Status code should be 400');
+    }
 }
