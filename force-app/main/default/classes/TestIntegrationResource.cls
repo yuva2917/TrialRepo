@@ -40,7 +40,7 @@ global with sharing class TestIntegrationResource {
                 }
                 
                 response.success = true;
-                response.message = 'Successfully retrieved ' + accounts.size() + ' accounts';
+                response.message = 'successfully retrieved ' + accounts.size() + ' accounts';
                 response.data = accountList;
             }
             
@@ -114,7 +114,7 @@ global with sharing class TestIntegrationResource {
             createdAccountMap.put('name', newAccount.Name);
             
             response.success = true;
-            response.message = 'Account created successfully';
+            response.message = 'created successfully';
             response.data = new List<Map<String, String>> { createdAccountMap };
             
             // Set HTTP status code and location header
@@ -216,7 +216,7 @@ global with sharing class TestIntegrationResource {
             updatedAccountMap.put('name', accountToUpdate.Name);
             
             response.success = true;
-            response.message = 'Account updated successfully';
+            response.message = 'updated successfully';
             response.data = new List<Map<String, String>> { updatedAccountMap };
             RestContext.response.statusCode = 200;
             
@@ -297,7 +297,7 @@ global with sharing class TestIntegrationResource {
             delete accountsToDelete;
             
             response.success = true;
-            response.message = 'Account deleted successfully';
+            response.message = 'deleted successfully';
             response.data = new List<Map<String, String>> { deletedAccountMap };
             RestContext.response.statusCode = 200;
             
